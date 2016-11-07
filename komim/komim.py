@@ -5,8 +5,8 @@
 @time: 2016/11/5 11:54
 """
 
-from .exceptions import IllegalArgumentException
-from .result import Result
+from .exceptions import *
+from .result import *
 import requests
 
 
@@ -60,6 +60,7 @@ class Komim:
                 param['include'].append(parameter)
             else:
                 param['exclude'].append(parameter)
+        param['mimNumber'] = ','.join(param['mimNumber'])
         if len(param['include']) > 0:
             param['include'] = ','.join(param['include'])
         else:
@@ -72,7 +73,7 @@ class Komim:
 
     def entry(self, mimnumber, respformat='json', **parameters):
         param = {
-            'mimNumber': mimnumber,
+            'mimNumber': [mimnumber],
             'format': respformat,
             'include': [],
             'exclude': []
@@ -80,4 +81,28 @@ class Komim:
         param = self.__init_param(param, parameters)
         url = 'http://api.omim.org/api/entry'
         self.resp = self.__session.get(url, params=param)
-        return Result(self.resp)
+        if respformat == 'json':
+            return Entry(self.resp)
+        else:
+            return Text(self.resp)
+
+    def entries(self, minumbers, respformat='json', **parameters):
+        self.resp = []
+        url = 'http://api.omim.org/api/entry'
+        param = {
+            'format': respformat,
+            'include': [],
+            'exclude': []
+        }
+        i = 0
+        while i < len(minumbers):
+            minumbers20 = minumbers[i:i + 20]
+            param20 = {
+                'mimNumber': minumbers20
+            }
+            param20.update(param)
+            param20 = self.__init_param(param20, parameters)
+            resp20 = self.__session.get(url, params=param20)
+            self.resp.append(resp20)
+            i += 20
+        return EntryList(self.resp)
